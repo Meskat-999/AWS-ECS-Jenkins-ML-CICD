@@ -1,0 +1,45 @@
+name: XET Temperature Model
+on:
+  workflow_dispatch:
+
+jobs:
+  xet-temperature:
+    name: Train Extra Trees model and estimate runner temperature
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install scikit-learn numpy joblib pytest
+
+      - name: Run tests
+        run: pytest tests/test_xet_temperature.py
+
+      - name: Train the XET model
+        run: python -m xet_temperature.train
+
+      - name: Estimate temperature of this server
+        run: python -m xet_temperature.predict
+
+      - name: Show result in the run summary
+        if: always()
+        run: |
+          {
+            echo "## XET (Extra Trees) temperature result"
+            echo '```json'
+            cat xet_temperature_report.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xet-temperature-report
+          path: xet_temperature_report.json
